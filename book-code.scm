@@ -365,10 +365,6 @@
 
 (define make-product
   (lambda (m1 m2)
-    (list '* m1 m2)))
-
-(define make-product
-  (lambda (m1 m2)
     (cond ((or (=number? m1 0) (=number? m2 0)) 0)
           ((=number? m1 1) m2)
           ((=number? m2 1) m1)

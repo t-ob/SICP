@@ -711,3 +711,111 @@ x
            (else (equal-test? (cdr list1) (cdr list2))))))
 
 
+;; Exercise 2.56
+(define make-ratio
+  (lambda (num denom)
+    (cond ((=number? num 0) 0)
+          (else (list '/ num denom)))))
+
+(define numerator
+  (lambda (ratio)
+    (cadr ratio)))
+
+(define denominator
+  (lambda (ratio)
+    (caddr ratio)))
+
+(define equal-ratio?
+  (lambda (r1 r2)
+    (equal? (make-product (numerator r1) (denominator r2))
+            (make-product (numerator r2) (denominator r1)))))
+
+(define ratio?
+  (lambda (exp)
+    (eq? (car exp) '/)))
+
+(define make-diff
+  (lambda (a1 a2)
+    (cond ((=number? a1 0) (- a2))
+          ((=number? a2 0) a1)
+          (else (list '- a1 a2)))))
+
+(define fast-expt
+  (lambda (base index)
+    (exponent-iter base index 1)))
+
+(define exponent-iter
+  (lambda (base index a)
+    (cond ((= 0 index) a)
+          ((even? index) (exponent-iter a
+                                        (square base)
+                                        (/ index 2)))
+          (else (exponent-iter (* a base)
+                               base
+                               (- index 1))))))
+
+(define make-exponentiation
+  (lambda (base exponent)
+    (cond ((=number? exponent 0) 1)
+          ((=number? exponent 1) base)
+          ((and (number? base) (number? exponent))
+           (fast-expt base exponent))
+          (else (list '** base exponent)))))
+
+(define base
+  (lambda (exponentiation)
+    (cadr exponentiation)))
+
+(define exponent
+  (lambda (exponentiation)
+    (caddr exponentiation)))
+
+(define exponentiation?
+  (lambda (exp)
+    (eq? (car exp) '**)))
+
+(define deriv
+  (lambda (exp var)
+    (cond ((number? exp) 0)
+          ((variable? exp)
+           (if (same-variable? exp var) 1 0))
+          ((sum? exp)
+           (make-sum (deriv (addend exp) var)
+                     (deriv (augend exp) var)))
+          ((product? exp)
+           (make-sum
+            (make-product (multiplier exp)
+                          (deriv (multiplicand exp) var))
+            (make-product (deriv (multiplier exp) var)
+                          (multiplicand exp))))
+          ((ratio? exp)
+           (make-ratio (make-diff
+                        (make-product (denominator exp)
+                                      (deriv (numerator exp) var))
+                        (make-product (numerator exp)
+                                      (deriv (denominator exp) var)))
+                       (make-exponentiation (denominator exp) 2)))
+          ((exponentiation? exp)
+           (make-product (exponent exp)
+                         (make-exponentiation (base exp)
+                                              (- (exponent exp) 1))))
+          (else
+           (error "unknown expression type -- DERIV" exp)))))
+
+(define make-sum
+  (lambda (a1 a2)
+    (cond ((=number? a1 0) a2)
+          ((=number? a2 0) a1)
+          ((and (number? a1) (number? a2)) (+ a1 a2))
+          (else (list '+ a1 a2)))))
+
+(define make-product
+  (lambda (m1 m2)
+    (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+          ((=number? m1 1) m2)
+          ((=number? m2 1) m1)
+          ((and (number? m1) (number? m2)) (* m1 m2))
+          (else (list '* m1 m2)))))
+
+;; TODO 2.57, 2.58
+
