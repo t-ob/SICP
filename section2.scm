@@ -819,3 +819,73 @@ x
 
 ;; TODO 2.57, 2.58
 
+;; 2.59
+(define union-set
+  (lambda (set1 set2)
+    (cond ((null? set1) set2)
+          ((null? set2) set1)
+          ((element-of-set? (car set1) set2)
+           (union-set (cdr set1) set2))
+          (else
+           (cons (car set1) (union-set (cdr set1) set2))))))
+
+;; 2.63
+(define tree->list-1
+  (lambda (tree)
+    (if (null? tree)
+        '()
+        (append (tree->list-1 (left-branch tree))
+                (cons (entry tree)
+                      (tree->list-1 (right-branch tree)))))))
+;; Linear time work outside of recursive calls due to append so that
+;; total running time is O(n logn)
+
+(define tree->list-2
+  (lambda (tree)
+    (define copy-to-list
+      (lambda (tree result-list)
+        (if (null? tree)
+            result-list
+            (copy-to-list (left-branch tree)
+                          (cons (entry tree)
+                                (copy-to-list (right-branch tree)
+                                              result-list))))))
+    (copy-to-list tree '())))
+;; Adding to the beginning of a list is an O(1) operation so the
+;; algorithm runs in O(log n) time
+
+(define set1
+  (make-tree 7
+             (make-tree 3
+                        (make-tree 1 '() '())
+                        (make-tree 5 '() '()))
+             (make-tree 9
+                        '()
+                        (make-tree 11 '() '()))))
+
+(define set2
+  (make-tree 3
+             (make-tree 1 '() '())
+             (make-tree 7
+                        (make-tree 5 '() '())
+                        (make-tree 9
+                                   '()
+                                   (make-tree 11 '() '())))))
+
+(define set3
+  (make-tree 5
+             (make-tree 3
+                        (make-tree 1 '() '())
+                        '())
+             (make-tree 9
+                        (make-tree 7 '() '())
+                        (make-tree 11 '() '()))))
+
+;; TODO 2.63, 2.64
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))

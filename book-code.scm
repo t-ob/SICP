@@ -394,3 +394,171 @@
 (define multiplicand
   (lambda (p)
     (caddr p)))
+
+(define element-of-set?
+  (lambda (x set)
+    (cond ((null? set) false)
+          ((equal? x (car set)) true)
+          (else (element-of-set? x (cdr set))))))
+
+(define adjoin-set
+  (lambda (x set)
+    (if (element-of-set? x set)
+        set
+        (cons x set))))
+
+(define intersection-set
+  (lambda (set1 set2)
+    (cond ((or (null? set1) (null? set2)) '())
+          ((element-of-set? (car set1) set2)
+           (cons (car set1)
+                 (intersection-set (cdr set1) set2)))
+          (else (intersection-set (cdr set1) set2)))))
+
+;; sets as trees
+;; The set {1,3,5,7,9,11} may be represented by a tree in a number of
+;; different ways.  The only thing we require for a valid representation
+;; is that all elements in the left subtree be smaller than the node
+;; entry and that all elements in the right subtree be larger
+
+;; Checking for membership then becomes an O(log n) time operation.
+
+;; We represent trees by using lists.  Each node will be a list of three
+;; items: the entry at the node, the left subtree and the right subtree.
+;; A left or a right subtree of the empty list will idnicate that there
+;; is no subtree connected there.  We can describe this representation
+;; by the following procedures:
+
+(define entry
+  (lambda (tree)
+    (car tree)))
+
+(define left-branch
+  (lambda (tree)
+    (cadr tree)))
+
+(define right-branch
+  (lambda (tree)
+    (caddr tree)))
+
+(define make-tree
+  (lambda (entry left right)
+    (list entry left right)))
+
+(define element-of-set?
+  (lambda (x set)
+    (cond ((null? set) false)
+          ((= x (entry set)) true)
+          ((< x (entry set))
+           (element-of-set? x (left-branch set)))
+          (else
+           (element-of-set? x (right-branch set))))))
+
+(define adjoin-set
+  (lambda (x set)
+    (cond ((null? set) (make-tree x '() '()))
+          ((= x (entry set)) set)
+          ((< x (entry set))
+           (make-tree (entry set)
+                      (adjoin-set x (left-branch set))
+                      (right-branch set)))
+          ((> x (entry set))
+           (make-tree (entry set)
+                      (left-branch set)
+                      (adjoin-set x (right-branch set)))))))
+
+;; Generating a Huffman tree
+;; Idea is to arrange the tree so that symbols with least frequency
+;; appear farthest away from root
+
+;; Start with set of leaf nodes, containing symbols and relative
+;; frequencies, determined from initial data.
+;; Find two leaves with lowest weights and merge them, forming a tree
+;; whoses left and right branches are those nodes, and adding
+;; frequencies.
+;; Remove two original nodes and replace with new tree.
+;; Repeat
+(define make-leaf
+  (lambda (symbol weight)
+    (list 'leaf symbol weight)))
+
+(define leaf?
+  (lambda (object)
+    (eq? (car object) 'leaf)))
+
+(define symbol-leaf
+  (lambda (leaf)
+    (cadr leaf)))
+
+(define weight-leaf
+  (lambda (leaf)
+    (caddr leaf)))
+
+(define make-code-tree
+  (lambda (left right)
+    (list left
+          right
+          (append (symbols left) (symbols right))
+          (+ (weight left) (+ weight right)))))
+
+(define left-branch
+  (lambda (tree)
+    (car tree)))
+
+(define right-branch
+  (lambda (tree)
+    (cadr tree)))
+
+(define symbols
+  (lambda (tree)
+    (if (leaf? tree)
+        (list (symbol-leaf tree))
+        (caddr tree))))
+
+(define weight
+  (lambda (tree)
+    (if (leaf? tree)
+        (weight-leaf tree)
+        (cadddr tree))))
+
+(define decode
+  (lambda (bits tree)
+    (define decode-1
+      (lambda (bits current-branch)
+        (if (null? bits)
+            '()
+            (let ((next-branch
+                   (choose-branch (car bits) current-branch)))
+              (if (leaf? next-branch)
+                  (cons (symbol-leaf next-branch)
+                        (decode-1 (cdr bits) tree))
+                  (decode-1 (cdr bits) next-branch))))))
+    (decode-1 bits tree)))
+
+(define choose-branch
+  (lambda (bit branch)
+    (cond ((= bit 0) (left-branch branch))
+          ((= bit 1) (right-branch branch))
+          (else (error "bad bit -- CHOOSE-BRANCH" bit)))))
+
+(define adjoin-set
+  (lambda (x set)
+    (cond ((null? set) (list x))
+          ((< (weight x) (weight (car set))) (cons x set))
+          (else (cons (car set)
+                      (adjoin-set x (cdr set)))))))
+
+(define make-leaf-set
+  (lambda (pairs)
+    (if (null? pairs)
+        '()
+        (let ((pair (car pairs)))
+          (adjoin-set (make-leaf (car-pair) (cadr pair))
+                      (make-leaf-set (cdr pairs)))))))
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))
